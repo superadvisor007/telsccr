@@ -1,0 +1,70 @@
+name: Daily Predictions
+
+on:
+  schedule:
+    # Run daily at 6:00 AM UTC (7:00 AM CET)
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  generate-predictions:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create data directory
+        run: mkdir -p data logs
+
+      - name: Run daily tasks
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+          DATABASE_PATH: ./data/bot.db
+          STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_PRICE_BASIC: ${{ secrets.STRIPE_PRICE_BASIC }}
+          STRIPE_PRICE_PREMIUM: ${{ secrets.STRIPE_PRICE_PREMIUM }}
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
+          API_FOOTBALL_BASE_URL: https://v3.football.api-sports.io
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: mixtral-8x7b-32768
+          SWISS_LEAGUE_ID: 207
+          SWISS_SEASON: 2024
+          BOT_ADMIN_IDS: ${{ secrets.BOT_ADMIN_IDS }}
+        run: |
+          python -c "
+          import asyncio
+          import sys
+          sys.path.insert(0, 'src')
+          from main import SoccerTipsBot
+          
+          async def run():
+              bot = SoccerTipsBot()
+              await bot.run_daily_tasks()
+          
+          asyncio.run(run())
+          "
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bot-logs
+          path: logs/*.log
+          retention-days: 7
