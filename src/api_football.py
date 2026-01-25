@@ -1,4 +1,5 @@
 """API Football client for fetching match data."""
+import asyncio
 import aiohttp
 import logging
 from typing import List, Dict, Optional
@@ -97,10 +98,32 @@ class APIFootballClient:
         all_fixtures = []
         today = datetime.now()
         
+        # Batch requests with rate limiting
+        tasks = []
         for i in range(days_ahead):
             date = (today + timedelta(days=i)).strftime("%Y-%m-%d")
-            fixtures = await self.get_fixtures_by_league(league_id, season, date)
-            all_fixtures.extend(fixtures)
+            tasks.append(self.get_fixtures_by_league(league_id, season, date))
+            
+            # Process in batches of 3 to avoid rate limits
+            if len(tasks) >= 3:
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+                for result in results:
+                    if isinstance(result, list):
+                        all_fixtures.extend(result)
+                    elif isinstance(result, Exception):
+                        logger.error(f"Failed to fetch fixtures: {result}")
+                tasks = []
+                # Small delay between batches
+                await asyncio.sleep(0.5)
+        
+        # Process remaining tasks
+        if tasks:
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for result in results:
+                if isinstance(result, list):
+                    all_fixtures.extend(result)
+                elif isinstance(result, Exception):
+                    logger.error(f"Failed to fetch fixtures: {result}")
             
         return all_fixtures
 

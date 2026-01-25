@@ -158,9 +158,17 @@ class SoccerTipsBot:
             # Parse fixture data
             match_data = self.api_football.parse_fixture(fixture)
             
+            # Parse match date properly
+            from dateutil.parser import parse as parse_date
+            try:
+                match_date = parse_date(match_data["match_date"])
+            except Exception as e:
+                logger.error(f"Failed to parse match date: {e}")
+                return
+            
             # Check if prediction already exists
             existing_predictions = await self.db.get_predictions_for_date(
-                datetime.fromisoformat(match_data["match_date"].replace("Z", "+00:00")),
+                match_date,
                 SubscriptionTier.PREMIUM
             )
             
@@ -206,7 +214,7 @@ class SoccerTipsBot:
                 match_data["league_id"],
                 match_data["home_team"],
                 match_data["away_team"],
-                datetime.fromisoformat(match_data["match_date"].replace("Z", "+00:00")),
+                match_date,
                 prediction["prediction"],
                 prediction["confidence"],
                 prediction["reasoning"],

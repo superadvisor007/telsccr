@@ -21,6 +21,43 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 
+# Message templates
+MESSAGE_TEMPLATES = {
+    "subscription_activated": """
+✅ **Subscription Activated!**
+
+Your {tier} subscription is now active!
+
+You now have access to:
+- Enhanced predictions
+- Detailed analysis
+- Priority support
+
+Expires: {expires_at}
+
+Thank you for subscribing! 🎉
+""",
+    "subscription_cancelled": """
+ℹ️ **Subscription Cancelled**
+
+Your subscription has been cancelled.
+
+You've been moved to the free tier. You can resubscribe anytime using /subscribe.
+
+Thank you for being a subscriber!
+""",
+    "payment_failed": """
+❌ **Payment Failed**
+
+Your recent payment could not be processed.
+
+Please update your payment method to continue your subscription.
+
+Contact support if you need assistance.
+"""
+}
+
+
 class WebhookServer:
     """Webhook server for payment processing."""
 
@@ -112,20 +149,10 @@ class WebhookServer:
         # Notify user
         await self.bot.notify_user(
             user_id,
-            f"""
-✅ **Subscription Activated!**
-
-Your {tier.title()} subscription is now active!
-
-You now have access to:
-- Enhanced predictions
-- Detailed analysis
-- Priority support
-
-Expires: {expires_at.strftime('%Y-%m-%d')}
-
-Thank you for subscribing! 🎉
-"""
+            MESSAGE_TEMPLATES["subscription_activated"].format(
+                tier=tier.title(),
+                expires_at=expires_at.strftime('%Y-%m-%d')
+            )
         )
         
         logger.info(f"Subscription created for user {user_id}: {tier}")
@@ -159,15 +186,7 @@ Thank you for subscribing! 🎉
         # Notify user
         await self.bot.notify_user(
             user_id,
-            """
-ℹ️ **Subscription Cancelled**
-
-Your subscription has been cancelled.
-
-You've been moved to the free tier. You can resubscribe anytime using /subscribe.
-
-Thank you for being a subscriber!
-"""
+            MESSAGE_TEMPLATES["subscription_cancelled"]
         )
         
         logger.info(f"Subscription cancelled for user {user_id}")
@@ -187,15 +206,7 @@ Thank you for being a subscriber!
         # Notify user
         await self.bot.notify_user(
             user_id,
-            """
-❌ **Payment Failed**
-
-Your recent payment could not be processed.
-
-Please update your payment method to continue your subscription.
-
-Contact support if you need assistance.
-"""
+            MESSAGE_TEMPLATES["payment_failed"]
         )
         
         logger.warning(f"Payment failed for user {user_id}")

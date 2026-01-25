@@ -71,7 +71,11 @@ async def test_database():
     
     # Cleanup
     await db.close()
-    os.remove("./data/test_bot.db")
+    try:
+        if os.path.exists("./data/test_bot.db"):
+            os.remove("./data/test_bot.db")
+    except Exception as e:
+        print(f"Warning: Could not remove test database: {e}")
     print("\n✅ All database tests passed!")
 
 
