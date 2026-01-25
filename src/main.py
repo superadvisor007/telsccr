@@ -7,11 +7,18 @@ from typing import List, Dict
 
 from dotenv import load_dotenv
 
-from .database import Database, SubscriptionTier, PredictionResult
-from .api_football import APIFootballClient
-from .prediction_engine import PredictionEngine
-from .payment_handler import StripePaymentHandler
-from .bot import TelegramBot
+try:
+    from .database import Database, SubscriptionTier, PredictionResult
+    from .api_football import APIFootballClient
+    from .prediction_engine import PredictionEngine
+    from .payment_handler import StripePaymentHandler
+    from .bot import TelegramBot
+except ImportError:
+    from database import Database, SubscriptionTier, PredictionResult
+    from api_football import APIFootballClient
+    from prediction_engine import PredictionEngine
+    from payment_handler import StripePaymentHandler
+    from bot import TelegramBot
 
 # Load environment variables
 load_dotenv()

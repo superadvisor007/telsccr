@@ -7,9 +7,14 @@ import os
 
 from dotenv import load_dotenv
 
-from .database import Database, SubscriptionTier
-from .payment_handler import StripePaymentHandler
-from .bot import TelegramBot
+try:
+    from .database import Database, SubscriptionTier
+    from .payment_handler import StripePaymentHandler
+    from .bot import TelegramBot
+except ImportError:
+    from database import Database, SubscriptionTier
+    from payment_handler import StripePaymentHandler
+    from bot import TelegramBot
 
 load_dotenv()
 
@@ -212,7 +217,10 @@ Contact support if you need assistance.
 
 async def main():
     """Main entry point for webhook server."""
-    from .main import SoccerTipsBot
+    try:
+        from .main import SoccerTipsBot
+    except ImportError:
+        from main import SoccerTipsBot
     
     # Initialize bot components
     bot = SoccerTipsBot()

@@ -9,8 +9,12 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
-from .database import Database, SubscriptionTier
-from .payment_handler import StripePaymentHandler, PaymentTier
+try:
+    from .database import Database, SubscriptionTier
+    from .payment_handler import StripePaymentHandler, PaymentTier
+except ImportError:
+    from database import Database, SubscriptionTier
+    from payment_handler import StripePaymentHandler, PaymentTier
 
 logger = logging.getLogger(__name__)
 
