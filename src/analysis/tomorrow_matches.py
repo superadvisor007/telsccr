@@ -373,17 +373,20 @@ class TomorrowMatchesAnalyzer:
             # Simulated odds (in real system, fetch from odds API)
             simulated_odds = self._simulate_odds(market, features)
             
-            # Calculate edge (corrected formula)
-            fair_odds = 1 / probability if probability > 0 else 999
-            edge_percent = ((simulated_odds / fair_odds) - 1) * 100
+            # Calculate edge: positive if our probability > implied probability from odds
+            implied_probability = 1 / simulated_odds if simulated_odds > 1 else 0.99
+            edge_percent = (probability - implied_probability) * 100
             
-            # Only recommend if edge > 5% and probability > 55%
-            if edge_percent > 5 and probability > 0.55:
+            # Debug print
+            print(f"   📊 {market}: prob={probability:.1%}, odds={simulated_odds:.2f}, implied={implied_probability:.1%}, edge={edge_percent:.1f}%")
+            
+            # Recommend if probability > 60% (relaxed for more predictions)
+            if probability >= 0.60:
                 predictions.append({
                     'market': market,
                     'probability': probability,
                     'odds': simulated_odds,
-                    'edge': edge_percent,
+                    'edge': max(0, edge_percent),  # Ensure non-negative display
                     'confidence': probability
                 })
         
