@@ -66,98 +66,122 @@ class TomorrowMatchesAnalyzer:
     def fetch_tomorrow_matches(self) -> List[Dict]:
         """
         Fetch tomorrow's matches from free APIs
-        
-        Priority order:
-        1. Football-Data.org (if API key available)
-        2. OpenLigaDB (Bundesliga only)
-        3. TheSportsDB (limited)
-        4. Fallback: Use sample matches for testing
+        NO SIMULATION - Only real matches!
         """
         tomorrow = datetime.now() + timedelta(days=1)
         tomorrow_str = tomorrow.strftime('%Y-%m-%d')
         
         matches = []
         
-        # Try Football-Data.org
-        matches.extend(self._fetch_from_football_data(tomorrow_str))
+        print(f"🔍 Searching for REAL matches on {tomorrow_str}...")
         
-        # Try OpenLigaDB (Bundesliga)
-        matches.extend(self._fetch_from_openligadb(tomorrow_str))
+        # Try OpenLigaDB (Bundesliga) - next upcoming matches
+        matches.extend(self._fetch_from_openligadb_upcoming())
         
-        # If no matches found, use sample data for demonstration
+        # Try TheSportsDB for multiple leagues
+        matches.extend(self._fetch_from_thesportsdb_upcoming())
+        
+        # If no matches found, show error and EXIT
         if not matches:
-            print("⚠️  No live matches found. Using sample data for demonstration.")
-            matches = self._generate_sample_matches(tomorrow_str)
+            print("❌ NO REAL MATCHES FOUND - System will NOT send fake data!")
+            print("   Checked: OpenLigaDB, TheSportsDB")
+            print("   Reason: No scheduled matches for tomorrow or next days")
+            return []
         
+        print(f"✅ Found {len(matches)} REAL upcoming matches")
         return matches
     
-    def _fetch_from_football_data(self, date: str) -> List[Dict]:
-        """Fetch from Football-Data.org"""
-        matches = []
-        try:
-            # Note: Requires API key for upcoming matches
-            # For now, we'll skip this and rely on other sources
-            pass
-        except Exception as e:
-            print(f"⚠️  Football-Data.org fetch failed: {e}")
-        return matches
+    # Removed _fetch_from_football_data() - needs API key
     
-    def _fetch_from_openligadb(self, date: str) -> List[Dict]:
-        """Fetch from OpenLigaDB (Bundesliga)"""
+    def _fetch_from_openligadb_upcoming(self) -> List[Dict]:
+        """Fetch NEXT upcoming matches from OpenLigaDB (Bundesliga)"""
         matches = []
         try:
-            # OpenLigaDB endpoint for upcoming matches
-            # This is a free API with no authentication
-            url = f"https://api.openligadb.de/getmatchdata/bl1"
+            # Get current season matches (sorted by date)
+            url = "https://api.openligadb.de/getmatchdata/bl1"
             response = requests.get(url, timeout=10)
             
             if response.status_code == 200:
                 data = response.json()
+                now = datetime.now()
+                
+                # Find next 5 upcoming matches
                 for match in data:
-                    match_date = match.get('matchDateTime', '')[:10]
-                    if match_date == date:
-                        matches.append({
-                            'home_team': match['team1']['teamName'],
-                            'away_team': match['team2']['teamName'],
-                            'league': 'Bundesliga',
-                            'date': date,
-                            'time': match.get('matchDateTime', '')[11:16],
-                            'source': 'OpenLigaDB'
-                        })
+                    match_datetime_str = match.get('matchDateTime', '')
+                    if match_datetime_str:
+                        match_dt = datetime.fromisoformat(match_datetime_str.replace('Z', '+00:00'))
+                        
+                        # Only upcoming matches (in the future)
+                        if match_dt > now:
+                            matches.append({
+                                'home_team': match['team1']['teamName'],
+                                'away_team': match['team2']['teamName'],
+                                'league': 'Bundesliga',
+                                'date': match_datetime_str[:10],
+                                'time': match_datetime_str[11:16],
+                                'source': 'OpenLigaDB (LIVE)'
+                            })
+                            
+                            if len(matches) >= 5:  # Limit to 5 matches
+                                break
+                
+                if matches:
+                    print(f"   ✅ OpenLigaDB: Found {len(matches)} upcoming Bundesliga matches")
+            
         except Exception as e:
-            print(f"⚠️  OpenLigaDB fetch failed: {e}")
+            print(f"   ⚠️  OpenLigaDB fetch failed: {e}")
         
         return matches
     
-    def _generate_sample_matches(self, date: str) -> List[Dict]:
-        """Generate sample matches for demonstration"""
-        samples = [
-            {
-                'home_team': 'Bayern Munich',
-                'away_team': 'Borussia Dortmund',
-                'league': 'Bundesliga',
-                'date': date,
-                'time': '18:30',
-                'source': 'Sample'
-            },
-            {
-                'home_team': 'Manchester City',
-                'away_team': 'Liverpool',
-                'league': 'Premier League',
-                'date': date,
-                'time': '20:00',
-                'source': 'Sample'
-            },
-            {
-                'home_team': 'Real Madrid',
-                'away_team': 'Barcelona',
-                'league': 'La Liga',
-                'date': date,
-                'time': '21:00',
-                'source': 'Sample'
-            }
+    def _fetch_from_thesportsdb_upcoming(self) -> List[Dict]:
+        """Fetch upcoming matches from TheSportsDB for multiple leagues"""
+        matches = []
+        
+        # League IDs: Premier League=4328, La Liga=4335, Serie A=4332
+        leagues = [
+            (4328, 'Premier League'),
+            (4335, 'La Liga'),
+            (4332, 'Serie A')
         ]
-        return samples
+        
+        try:
+            now = datetime.now()
+            
+            for days_ahead in range(1, 8):  # Check next 7 days
+                check_date = (now + timedelta(days=days_ahead)).strftime('%Y-%m-%d')
+                
+                for league_id, league_name in leagues:
+                    url = f"https://www.thesportsdb.com/api/v1/json/3/eventsday.php?d={check_date}&l={league_id}"
+                    response = requests.get(url, timeout=5)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        events = data.get('events') or []
+                        
+                        for event in events:
+                            if event and event.get('strSport') == 'Soccer':
+                                matches.append({
+                                    'home_team': event['strHomeTeam'],
+                                    'away_team': event['strAwayTeam'],
+                                    'league': league_name,
+                                    'date': check_date,
+                                    'time': event.get('strTime', 'TBD'),
+                                    'source': 'TheSportsDB (LIVE)'
+                                })
+                        
+                        if matches:
+                            print(f"   ✅ TheSportsDB: Found {len(events)} {league_name} matches on {check_date}")
+                
+                # Stop if we found enough matches
+                if len(matches) >= 10:
+                    break
+                    
+        except Exception as e:
+            print(f"   ⚠️  TheSportsDB fetch failed: {e}")
+        
+        return matches
+    
+    # NO MORE FAKE DATA - removed _generate_sample_matches()
     
     def get_team_elo(self, team_name: str) -> float:
         """Get latest Elo rating for team from historical data"""
