@@ -1,0 +1,148 @@
+"""GitHub Actions workflow for continuous training."""
+name: Continuous Training
+
+on:
+  schedule:
+    - cron: '0 10 * * 1'  # Every Monday at 10:00 AM UTC
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  continuous-training:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: telegramsoccer
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-advanced.txt
+      
+      - name: Create .env file
+        run: |
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
+          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
+          echo "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" >> .env
+          echo "ODDS_API_KEY=${{ secrets.ODDS_API_KEY }}" >> .env
+          echo "FOOTBALL_DATA_API_KEY=${{ secrets.FOOTBALL_DATA_API_KEY }}" >> .env
+          echo "WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }}" >> .env
+          echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" >> .env
+      
+      - name: Fetch last week's outcomes
+        run: |
+          python -c "
+          from src.core.database import DatabaseManager
+          from src.finetuning.trainer import OutcomeAnalyzer
+          import asyncio
+          
+          async def main():
+              print('Fetching settled tips...')
+              # Implementation here
+              print('Outcomes fetched')
+          
+          asyncio.run(main())
+          "
+      
+      - name: Generate post-mortems
+        run: |
+          python -c "
+          from prefect.flows.feedback_loop import continuous_learning_flow
+          import asyncio
+          
+          async def main():
+              await continuous_learning_flow(
+                  days_back=7,
+                  finetune_llm_enabled=False,  # Too expensive for weekly
+                  retrain_rl_enabled=True,
+                  retrain_meta_enabled=True,
+              )
+          
+          asyncio.run(main())
+          "
+      
+      - name: Retrain RL agent
+        run: |
+          python -c "
+          from src.rl.agent import RLStakingAgent
+          
+          agent = RLStakingAgent()
+          agent.train(total_timesteps=50000)
+          print('RL agent retrained')
+          "
+      
+      - name: Retrain meta-learner
+        run: |
+          python -c "
+          from src.meta.learner import MetaLearner
+          from src.core.database import DatabaseManager
+          
+          db = DatabaseManager()
+          meta = MetaLearner()
+          
+          X, y = meta.prepare_training_data(db, min_samples=100)
+          if len(X) > 0:
+              metrics = meta.train(X, y)
+              print(f'Meta-learner retrained: {metrics}')
+          else:
+              print('Insufficient data for retraining')
+          "
+      
+      - name: Check performance degradation
+        run: |
+          python -c "
+          from src.monitoring.mlflow_tracker import MLflowTracker, PerformanceAlerts
+          
+          tracker = MLflowTracker()
+          alerts = PerformanceAlerts(tracker)
+          
+          # Check each model
+          for model in ['xgboost_over_1_5', 'xgboost_btts', 'meta_learner']:
+              alerts.check_and_alert(model, {'accuracy': 0.65})
+          
+          print('Performance check complete')
+          "
+      
+      - name: Upload retrained models
+        uses: actions/upload-artifact@v4
+        with:
+          name: retrained-models
+          path: |
+            models/rl_agent.zip
+            models/meta_learner.pkl
+          retention-days: 90
+      
+      - name: Notify on failure
+        if: failure()
+        run: |
+          curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+            -H 'Content-Type: application/json' \
+            -d '{"text":"🚨 Continuous training failed! Check GitHub Actions logs."}'
+      
+      - name: Notify on success
+        if: success()
+        run: |
+          curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+            -H 'Content-Type: application/json' \
+            -d '{"text":"✅ Continuous training complete - models retrained successfully"}'

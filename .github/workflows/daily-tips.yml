@@ -1,0 +1,79 @@
+name: Daily Tips Generation
+
+on:
+  schedule:
+    # Run every day at 9:00 AM UTC
+    - cron: '0 9 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  generate-tips:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Create .env file
+        run: |
+          echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" >> .env
+          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
+          echo "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" >> .env
+          echo "ODDS_API_KEY=${{ secrets.ODDS_API_KEY }}" >> .env
+          echo "FOOTBALL_DATA_API_KEY=${{ secrets.FOOTBALL_DATA_API_KEY }}" >> .env
+          echo "SPORTMONKS_API_KEY=${{ secrets.SPORTMONKS_API_KEY }}" >> .env
+          echo "OPENWEATHER_API_KEY=${{ secrets.OPENWEATHER_API_KEY }}" >> .env
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
+          echo "ENVIRONMENT=production" >> .env
+      
+      - name: Run daily pipeline
+        run: |
+          python src/pipeline.py
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tips-${{ github.run_number }}
+          path: |
+            logs/*.log
+            data/processed/*.json
+          retention-days: 30
+      
+      - name: Notify on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "❌ Daily tips generation failed!",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Daily Tips Pipeline Failed*\nWorkflow: ${{ github.workflow }}\nRun: ${{ github.run_number }}"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

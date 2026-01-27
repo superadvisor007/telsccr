@@ -1,0 +1,17 @@
+-r requirements.txt
+
+# Development Tools
+black==24.1.1
+isort==5.13.2
+flake8==7.0.0
+mypy==1.8.0
+pylint==3.0.3
+
+# Documentation
+mkdocs==1.5.3
+mkdocs-material==9.5.6
+
+# Jupyter
+jupyter==1.0.0
+ipython==8.21.0
+notebook==7.0.7

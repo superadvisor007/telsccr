@@ -1,0 +1,80 @@
+app:
+  name: "TelegramSoccer"
+  version: "1.0.0"
+  environment: "${ENVIRONMENT:development}"
+
+betting:
+  target_quote: 1.40
+  min_probability: 0.72
+  max_stake_percentage: 2.0
+  stop_loss_percentage: 15.0
+  bankroll_initial: 1000.0
+  
+  markets:
+    - name: "over_1_5_goals"
+      min_odds: 1.15
+      max_odds: 1.50
+      min_probability: 0.80
+    - name: "btts"
+      min_odds: 1.25
+      max_odds: 1.65
+      min_probability: 0.70
+    - name: "double_chance"
+      min_odds: 1.18
+      max_odds: 1.45
+      min_probability: 0.75
+
+leagues:
+  high_scoring:
+    - "Bundesliga"
+    - "Eredivisie"
+    - "Austrian Bundesliga"
+    - "Swiss Super League"
+    - "Norwegian Eliteserien"
+  
+  moderate_scoring:
+    - "Premier League"
+    - "La Liga"
+    - "Serie A"
+    - "Ligue 1"
+
+llm:
+  model: "gpt-4-turbo-preview"
+  fallback_model: "claude-3-sonnet-20240229"
+  temperature: 0.2
+  max_tokens: 2000
+  timeout: 30
+
+data_sources:
+  odds:
+    api: "the-odds-api"
+    update_frequency: 300  # seconds
+  
+  stats:
+    api: "football-data"
+    update_frequency: 3600
+  
+  weather:
+    api: "openweather"
+    update_frequency: 1800
+
+features:
+  xg_window: 5  # last N matches
+  form_window: 6
+  h2h_window: 10
+  sentiment_window: 7  # days
+
+scheduler:
+  tip_generation_time: "09:00"
+  timezone: "UTC"
+  data_refresh_times:
+    - "00:00"
+    - "06:00"
+    - "12:00"
+    - "18:00"
+
+logging:
+  level: "INFO"
+  format: "{time:YYYY-MM-DD HH:mm:ss} | {level} | {name}:{function}:{line} - {message}"
+  rotation: "500 MB"
+  retention: "30 days"

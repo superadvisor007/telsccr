@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: telegramsoccer_db
+    environment:
+      POSTGRES_DB: telegramsoccer
+      POSTGRES_USER: soccer_user
+      POSTGRES_PASSWORD: soccer_pass_2026
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U soccer_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: telegramsoccer_app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://soccer_user:soccer_pass_2026@postgres:5432/telegramsoccer
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./models:/app/models
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
