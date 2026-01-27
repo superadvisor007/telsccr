@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Soccer Betting System - Dashboard</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { background: #2c3e50; color: white; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+        .card { background: white; padding: 20px; margin: 10px 0; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .metric { display: inline-block; margin: 10px 20px; }
+        .metric-label { font-size: 14px; color: #666; }
+        .metric-value { font-size: 32px; font-weight: bold; color: #2c3e50; }
+        .status-healthy { color: #27ae60; }
+        .status-warning { color: #f39c12; }
+        .status-critical { color: #e74c3c; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚽ Soccer Betting System Dashboard</h1>
+            <p>Real-Time Performance Monitoring</p>
+        </div>
+        
+        <div class="card">
+            <h2>System Health</h2>
+            <div class="metric">
+                <div class="metric-label">Status</div>
+                <div class="metric-value status-{{ metrics.status|lower }}">
+                    {{ metrics.status|default('UNKNOWN') }}
+                </div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Win Rate</div>
+                <div class="metric-value">{{ (metrics.win_rate * 100)|round(1) if metrics.win_rate else 0 }}%</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Total Predictions</div>
+                <div class="metric-value">{{ metrics.total_predictions|default(0) }}</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Correct</div>
+                <div class="metric-value">{{ metrics.correct_predictions|default(0) }}</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>API Health</h2>
+            <div class="metric">
+                <div class="metric-label">API Success Rate</div>
+                <div class="metric-value">{{ metrics.api_success_rate|round(0) if metrics.api_success_rate else 100 }}%</div>
+            </div>
+            <div class="metric">
+                <div class="metric-label">Telegram Delivery</div>
+                <div class="metric-value">{{ metrics.telegram_delivery_rate|round(0) if metrics.telegram_delivery_rate else 100 }}%</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>Last Updated</h2>
+            <p>{{ metrics.timestamp|default('Never') }}</p>
+            <p><small>Last Prediction: {{ metrics.last_prediction_time|default('Never') }}</small></p>
+        </div>
+    </div>
+    
+    <script>
+        // Auto-refresh every 30 seconds
+        setTimeout(function() { location.reload(); }, 30000);
+    </script>
+</body>
+</html>
