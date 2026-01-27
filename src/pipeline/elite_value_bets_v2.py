@@ -38,6 +38,15 @@ from ingestion.free_odds_collector import FreeOddsCollector, RealOdds
 from analysis.psychology_factors import PsychologicalAnalyzer
 from learning.self_training_system import SelfTrainingSystem
 
+# NEW: Reasoning Agent Integration
+try:
+    from reasoning.reasoning_agent import ReasoningAgent
+    from reasoning.schemas import BettingDecision, Recommendation
+    REASONING_ENABLED = True
+except ImportError:
+    REASONING_ENABLED = False
+    print("⚠️ Reasoning module not available")
+
 
 @dataclass
 class ValueBet:
@@ -118,6 +127,12 @@ class EliteValueBetsV2:
         self.psych_analyzer = PsychologicalAnalyzer()
         self.self_trainer = SelfTrainingSystem()
         
+        # NEW: Reasoning Agent
+        if REASONING_ENABLED:
+            self.reasoning_agent = ReasoningAgent(verbose=False)
+        else:
+            self.reasoning_agent = None
+        
         # Telegram config
         self.telegram_token = os.environ.get('TELEGRAM_BOT_TOKEN', 
             '7971161852:AAFJAdHNAxYTHs2mi7Wj5sWuSA2tfA9WwcI')
@@ -165,6 +180,7 @@ class EliteValueBetsV2:
         print("=" * 70)
         print(f"   📅 {datetime.now().strftime('%Y-%m-%d %H:%M')}")
         print(f"   🔬 Model: Dixon-Coles (1997)")
+        print(f"   🧠 Reasoning Agent: {'ENABLED' if REASONING_ENABLED else 'DISABLED'}")
         print(f"   📊 Min EV: {self.config['min_ev']:.0%}")
         print("=" * 70)
         
@@ -335,6 +351,20 @@ class EliteValueBetsV2:
         importance = self._calculate_importance(home_elo, away_elo, match.get('matchday', 20))
         
         value_bets = []
+        reasoning_decisions = []
+        
+        # NEW: Use Reasoning Agent if enabled
+        if self.reasoning_agent and REASONING_ENABLED:
+            try:
+                reasoning_decisions = self.reasoning_agent.analyze_match(
+                    home_team=home,
+                    away_team=away,
+                    league=league,
+                    match_date=date,
+                    target_markets=['over_1_5', 'over_2_5', 'btts_yes', 'btts_no']
+                )
+            except Exception as e:
+                print(f"      ⚠️ Reasoning agent error: {e}")
         
         # Analyze each market
         for market in self.markets:
@@ -372,6 +402,17 @@ class EliteValueBetsV2:
             
             # Build reasoning
             reasons = self._build_reasons(market, ev, edge, dc_result, psych, home_elo, away_elo)
+            
+            # NEW: Enhance reasoning from agent
+            agent_reasoning = ""
+            for rd in reasoning_decisions:
+                if rd.market.value == market:
+                    # Merge agent's reasoning
+                    reasons.extend(rd.why_this_bet[:2])
+                    if rd.contrarian_check:
+                        reasons.append(f"⚠️ Risks: {rd.why_might_fail[0] if rd.why_might_fail else 'N/A'}")
+                    agent_reasoning = rd.chain_of_thought.to_string() if rd.chain_of_thought else ""
+                    break
             
             bet = ValueBet(
                 home_team=home,
