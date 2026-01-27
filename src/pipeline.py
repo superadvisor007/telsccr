@@ -39,6 +39,10 @@ class Pipeline:
             initial_bankroll=settings.betting.bankroll_initial,
             target_quote=settings.betting.target_quote,
             min_probability=settings.betting.min_probability,
+            max_stake_percentage=settings.betting.max_stake_percentage,
+            stop_loss_percentage=settings.betting.stop_loss_percentage,
+        )
+        
         # Advanced ML components
         self.rl_agent = RLStakingAgent()
         self.rag_system = BettingMemoryRAG(get_db())
@@ -54,11 +58,7 @@ class Pipeline:
         except Exception as e:
             logger.warning(f"Could not load advanced models: {e}")
         
-        logger.info("Pipeline initialized with advanced ML components.betting.max_stake_percentage,
-            stop_loss_percentage=settings.betting.stop_loss_percentage,
-        )
-        
-        logger.info("Pipeline initialized")
+        logger.info("Pipeline initialized with advanced ML components")
     
     async def run_daily_pipeline(self) -> List[Dict[str, Any]]:
         """

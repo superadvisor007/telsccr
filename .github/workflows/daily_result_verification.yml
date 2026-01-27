@@ -1,0 +1,140 @@
+name: 🔄 Daily Result Verification & Self-Learning
+
+on:
+  schedule:
+    # Run at 10 AM UTC every day (after matches are finished)
+    - cron: '0 10 * * *'
+  
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      days_back:
+        description: 'How many days back to verify'
+        required: false
+        default: '1'
+
+jobs:
+  verify-results:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests pandas numpy scikit-learn joblib
+      
+      - name: 🔍 Verify Yesterday's Results
+        run: |
+          cd ${{ github.workspace }}
+          python -c "
+          import sys
+          sys.path.insert(0, 'src')
+          from ingestion.auto_result_collector import AutoResultCollector
+          from learning.self_training_system import SelfTrainingSystem
+          
+          # Collect results
+          collector = AutoResultCollector()
+          results = collector.fetch_yesterdays_results()
+          print(f'📊 Fetched {len(results)} results from yesterday')
+          
+          # Verify predictions
+          trainer = SelfTrainingSystem()
+          verified = trainer.verify_pending_predictions(results)
+          print(f'✅ Verified {verified} predictions')
+          
+          # Generate report
+          print(trainer.generate_report())
+          "
+      
+      - name: 📊 Check Self-Training Triggers
+        run: |
+          cd ${{ github.workspace }}
+          python -c "
+          import sys
+          sys.path.insert(0, 'src')
+          from learning.self_training_system import SelfTrainingSystem
+          
+          trainer = SelfTrainingSystem()
+          metrics = trainer.check_retraining_needed()
+          
+          if metrics.needs_retraining:
+              print('⚠️  RETRAINING RECOMMENDED!')
+              print(f'   Reason: {metrics.retraining_reason}')
+          else:
+              print('✅ Model performing within thresholds')
+              print(f'   Win Rate: {metrics.win_rate:.1%}')
+              print(f'   ROI: {metrics.roi:+.1%}')
+              print(f'   Sharpe Ratio: {metrics.sharpe_ratio:.2f}')
+          "
+      
+      - name: 📤 Commit updated predictions
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -A data/self_training/ || true
+          git diff --staged --quiet || git commit -m "📊 Auto-update: Verified results $(date +%Y-%m-%d)"
+          git push || echo "Nothing to push"
+
+  weekly-analysis:
+    runs-on: ubuntu-latest
+    # Run only on Mondays
+    if: github.event.schedule == '0 10 * * 1' || github.event_name == 'workflow_dispatch'
+    needs: verify-results
+    
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests pandas numpy scikit-learn joblib
+      
+      - name: 📈 Weekly Performance Analysis
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          cd ${{ github.workspace }}
+          python -c "
+          import sys
+          import os
+          import requests
+          sys.path.insert(0, 'src')
+          from learning.self_training_system import SelfTrainingSystem
+          
+          trainer = SelfTrainingSystem()
+          
+          # Generate full report
+          report = trainer.generate_report()
+          print(report)
+          
+          # Send to Telegram
+          token = os.environ.get('TELEGRAM_BOT_TOKEN')
+          chat_id = os.environ.get('TELEGRAM_CHAT_ID')
+          
+          if token and chat_id:
+              message = '📊 WEEKLY PERFORMANCE REPORT\n\n' + report
+              url = f'https://api.telegram.org/bot{token}/sendMessage'
+              requests.post(url, data={
+                  'chat_id': chat_id,
+                  'text': message[:4000],
+                  'parse_mode': 'HTML'
+              })
+              print('✅ Weekly report sent to Telegram')
+          "

@@ -36,19 +36,20 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
         run: |
           cd ${{ github.workspace }}
           python -c "
           import sys
           sys.path.insert(0, 'src')
-          from pipeline.elite_value_bets import EliteValueBetsEngine
           
-          engine = EliteValueBetsEngine()
-          success = engine.run_daily()
+          # Use V2 with Dixon-Coles model
+          from pipeline.elite_value_bets_v2 import EliteValueBetsV2
           
-          if success:
-              print('✅ Elite bets generated and sent!')
+          engine = EliteValueBetsV2()
+          value_bets = engine.run()
+          
+          if value_bets:
+              print(f'✅ Generated {len(value_bets)} elite value bets!')
           else:
               print('⚠️  No value bets found today')
           "

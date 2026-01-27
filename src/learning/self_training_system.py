@@ -71,6 +71,10 @@ class TrainingMetrics:
     # Calibration
     calibration_error: float = 0.0  # Brier score
     
+    # Sharpe Ratio (risk-adjusted returns)
+    sharpe_ratio: float = 0.0
+    sortino_ratio: float = 0.0
+    
     # Recent performance (last 50)
     recent_win_rate: float = 0.0
     recent_roi: float = 0.0
@@ -394,6 +398,31 @@ class SelfTrainingSystem:
         recent_profit = sum(r['profit_loss'] for r in recent)
         recent_staked = sum(r['kelly_stake'] for r in recent)
         
+        # Sharpe Ratio Calculation (annualized, risk-adjusted returns)
+        # Formula: Sharpe = √365 × mean(daily_returns) / std(daily_returns)
+        sharpe_ratio = 0.0
+        sortino_ratio = 0.0
+        
+        if len(verified) >= 10:
+            # Calculate returns per bet (profit/stake)
+            returns = [rec['profit_loss'] / max(rec['kelly_stake'], 0.01) for rec in verified]
+            
+            import numpy as np
+            returns_array = np.array(returns)
+            mean_return = np.mean(returns_array)
+            std_return = np.std(returns_array)
+            
+            if std_return > 0:
+                # Annualized Sharpe (assume ~2 bets per day average)
+                sharpe_ratio = np.sqrt(365 * 2) * mean_return / std_return
+            
+            # Sortino Ratio (only penalizes downside volatility)
+            downside_returns = returns_array[returns_array < 0]
+            if len(downside_returns) > 0:
+                downside_std = np.std(downside_returns)
+                if downside_std > 0:
+                    sortino_ratio = np.sqrt(365 * 2) * mean_return / downside_std
+        
         return TrainingMetrics(
             total_predictions=len(self.predictions),
             verified_predictions=len(verified),
@@ -403,6 +432,8 @@ class SelfTrainingSystem:
             roi=total_profit / total_staked if total_staked > 0 else 0,
             market_performance=market_perf,
             calibration_error=calibration_error,
+            sharpe_ratio=sharpe_ratio,
+            sortino_ratio=sortino_ratio,
             recent_win_rate=recent_correct / len(recent) if recent else 0,
             recent_roi=recent_profit / recent_staked if recent_staked > 0 else 0
         )
@@ -426,6 +457,8 @@ class SelfTrainingSystem:
         report.append(f"   Correct:               {metrics.correct_predictions}")
         report.append(f"   Win Rate:              {metrics.win_rate:.1%}")
         report.append(f"   ROI:                   {metrics.roi:+.1%}")
+        report.append(f"   Sharpe Ratio:          {metrics.sharpe_ratio:+.2f}")
+        report.append(f"   Sortino Ratio:         {metrics.sortino_ratio:+.2f}")
         report.append(f"   Calibration Error:     {metrics.calibration_error:.3f}")
         report.append("")
         
