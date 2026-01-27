@@ -1,0 +1,138 @@
+name: 24/7 Vision-Driven Self-Improvement
+
+on:
+  schedule:
+    # Run every 6 hours (4x per day = 24/7 coverage)
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      force_retrain:
+        description: 'Force model retraining'
+        required: false
+        default: 'false'
+
+jobs:
+  vision_improvement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    
+    steps:
+      - name: 🎯 Checkout Repository
+        uses: actions/checkout@v3
+      
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: 📦 Install Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pandas numpy scikit-learn joblib matplotlib seaborn requests python-dotenv
+      
+      - name: 📊 Load Environment Variables
+        run: |
+          if [ -f .env ]; then
+            echo "Loading .env file..."
+            cat .env >> $GITHUB_ENV
+          fi
+      
+      - name: 🎯 Execute Vision-Driven Improvement Cycle
+        run: |
+          python src/learning/vision_driven_system.py
+      
+      - name: 📈 Update Performance Metrics
+        run: |
+          # Verify recent predictions
+          python src/ingestion/result_collector.py --verify-last-7-days
+      
+      - name: 🔄 Analyze Errors and Identify Improvements
+        run: |
+          python src/learning/self_improvement.py --analyze-errors
+      
+      - name: 🧠 Check if Retraining Needed
+        id: check_retrain
+        run: |
+          # Check vision metrics
+          VISION_SCORE=$(python -c "
+          from src.learning.vision_driven_system import VisionDrivenSystem
+          system = VisionDrivenSystem()
+          print(system.metrics.get_vision_score())
+          ")
+          
+          echo "Vision Score: $VISION_SCORE"
+          
+          # Retrain if vision score <60 or force_retrain=true
+          if [ "${{ github.event.inputs.force_retrain }}" = "true" ] || [ $(echo "$VISION_SCORE < 60" | bc -l) -eq 1 ]; then
+            echo "retrain=true" >> $GITHUB_OUTPUT
+            echo "🔄 Retraining triggered (Vision Score: $VISION_SCORE)"
+          else
+            echo "retrain=false" >> $GITHUB_OUTPUT
+            echo "✅ No retraining needed (Vision Score: $VISION_SCORE)"
+          fi
+      
+      - name: 🚀 Retrain Models (if needed)
+        if: steps.check_retrain.outputs.retrain == 'true'
+        run: |
+          echo "🔄 Retraining models to improve toward €20k/month vision..."
+          
+          # Collect latest data
+          python collect_massive_historical_data.py
+          
+          # Train with improved parameters
+          python train_knowledge_enhanced_ml.py
+          
+          echo "✅ Models retrained successfully"
+      
+      - name: 🎯 Generate New Predictions
+        run: |
+          python generate_enhanced_predictions.py
+      
+      - name: 📱 Send Vision Dashboard to Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          # Generate vision dashboard
+          DASHBOARD=$(python -c "
+          from src.learning.vision_driven_system import VisionDrivenSystem
+          system = VisionDrivenSystem()
+          print(system.generate_vision_dashboard())
+          ")
+          
+          # Send to Telegram
+          python -c "
+          import os
+          import requests
+          token = os.getenv('TELEGRAM_BOT_TOKEN', '7971161852:AAFJAdHNAxYTHs2mi7Wj5sWuSA2tfA9WwcI')
+          chat_id = os.getenv('TELEGRAM_CHAT_ID', '-4792949084')
+          message = '''$DASHBOARD'''
+          url = f'https://api.telegram.org/bot{token}/sendMessage'
+          requests.post(url, json={'chat_id': chat_id, 'text': message, 'parse_mode': 'HTML'})
+          print('✅ Vision dashboard sent to Telegram')
+          "
+      
+      - name: 💾 Upload Vision Metrics
+        uses: actions/upload-artifact@v3
+        with:
+          name: vision-metrics
+          path: |
+            data/vision/vision_metrics.json
+            data/vision/improvement_actions.json
+            data/vision/vision_dashboard_*.txt
+          retention-days: 90
+      
+      - name: 📊 Summary
+        run: |
+          echo "════════════════════════════════════════════════════════════"
+          echo "✅ VISION-DRIVEN IMPROVEMENT CYCLE COMPLETE"
+          echo "════════════════════════════════════════════════════════════"
+          echo ""
+          echo "🎯 Mission: €20,000 Monthly Profit"
+          echo "📊 Vision Dashboard: Updated"
+          echo "🔄 Next Cycle: In 6 hours"
+          echo "📱 Telegram: Dashboard sent"
+          echo ""
+          echo "Runs 4x per day = 24/7 continuous improvement"
+          echo "════════════════════════════════════════════════════════════"
