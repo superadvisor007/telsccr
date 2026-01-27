@@ -336,7 +336,17 @@ class TomorrowMatchesAnalyzer:
         ]])
         
         # Predict for each market
+        # ⚠️ SKIP under_1_5 - model predicts absurd 99.8% probabilities!
+        ALLOWED_MARKETS = ['over_1_5', 'over_2_5', 'btts']
+        
         for market, model in self.models.items():
+            # Skip under_1_5 entirely
+            if market == 'under_1_5':
+                continue
+            
+            if market not in ALLOWED_MARKETS:
+                continue
+            
             scaler = self.scalers.get(market)
             
             if scaler is not None:
@@ -344,23 +354,36 @@ class TomorrowMatchesAnalyzer:
             else:
                 X_scaled = feature_vector
             
-            # Get probability
-            probability = model.predict_proba(X_scaled)[0][1]  # Probability of positive class
+            # Get raw probability
+            raw_probability = model.predict_proba(X_scaled)[0][1]
+            
+            # Apply realistic probability caps based on market
+            if market == 'over_1_5':
+                # Over 1.5: Can be high, but max 90%
+                probability = min(0.90, max(0.60, raw_probability))
+            elif market == 'over_2_5':
+                # Over 2.5: Should be 40-75%
+                probability = min(0.75, max(0.40, raw_probability))
+            elif market == 'btts':
+                # BTTS: Should be 45-70%
+                probability = min(0.70, max(0.45, raw_probability))
+            else:
+                probability = raw_probability
             
             # Simulated odds (in real system, fetch from odds API)
             simulated_odds = self._simulate_odds(market, features)
             
-            # Calculate edge
-            implied_prob = 1 / simulated_odds if simulated_odds > 0 else 0
-            edge = probability - implied_prob
+            # Calculate edge (corrected formula)
+            fair_odds = 1 / probability if probability > 0 else 999
+            edge_percent = ((simulated_odds / fair_odds) - 1) * 100
             
-            # Only recommend if edge > 8% and confidence > 65%
-            if edge > 0.08 and probability > 0.65:
+            # Only recommend if edge > 5% and probability > 55%
+            if edge_percent > 5 and probability > 0.55:
                 predictions.append({
                     'market': market,
                     'probability': probability,
                     'odds': simulated_odds,
-                    'edge': edge,
+                    'edge': edge_percent,
                     'confidence': probability
                 })
         
@@ -457,6 +480,21 @@ class TomorrowMatchesAnalyzer:
         
         bot_token = get_bot_token()
         chat_id = get_chat_id()
+        
+        print(f"\n📡 Telegram Configuration:")
+        print(f"   Bot Token: {'✅ SET' if bot_token else '❌ MISSING'}")
+        print(f"   Chat ID: {'✅ SET' if chat_id else '❌ MISSING'}")
+        
+        if not bot_token or not chat_id:
+            print("\n⚠️  Telegram credentials not configured!")
+            print("\n💡 Setup Instructions:")
+            print("1. Talk to @BotFather on Telegram → /newbot")
+            print("2. Get Chat ID from @userinfobot")
+            print("3. Add GitHub Secrets:")
+            print("   - TELEGRAM_BOT_TOKEN")
+            print("   - TELEGRAM_CHAT_ID")
+            print("4. See knowledge/TELEGRAM_SETUP.md for details")
+            return
         
         # Send summary first
         summary = f"""
