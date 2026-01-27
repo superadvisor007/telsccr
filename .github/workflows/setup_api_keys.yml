@@ -1,0 +1,140 @@
+name: Get Free API Keys & Setup
+on:
+  workflow_dispatch:
+    inputs:
+      api_football_email:
+        description: 'Email for API-Football signup'
+        required: false
+      isports_email:
+        description: 'Email for iSports API signup'  
+        required: false
+
+jobs:
+  setup-apis:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: API-Football Instructions
+        run: |
+          echo "╔════════════════════════════════════════════════════╗"
+          echo "║                                                    ║"
+          echo "║     📋 FREE API KEYS SETUP INSTRUCTIONS 📋         ║"
+          echo "║                                                    ║"
+          echo "╚════════════════════════════════════════════════════╝"
+          echo ""
+          echo "🌐 API-FOOTBALL (100 requests/day FREE)"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "1. Go to: https://www.api-football.com/"
+          echo "2. Click 'Sign Up' (top right)"
+          echo "3. Create free account with your email"
+          echo "4. Verify email"
+          echo "5. Login → Dashboard → Copy API Key"
+          echo "6. Save to GitHub Secrets: API_FOOTBALL_KEY"
+          echo ""
+          echo "🌐 iSPORTS API (200 requests/day FREE)"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "1. Go to: https://www.isportsapi.com/"
+          echo "2. Click 'Register' or 'Sign Up'"
+          echo "3. Create free account"
+          echo "4. Verify email"
+          echo "5. Dashboard → API Key → Copy"
+          echo "6. Save to GitHub Secrets: ISPORTS_API_KEY"
+          echo ""
+          echo "🤖 TELEGRAM BOT (Already configured!)"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "✓ Token: 7971161852:AAFJAdHNAxYTHs2mi7Wj5sWuSA2tfA9WwcI"
+          echo "✓ Bot: @Tonticketbot"
+          echo "✓ Status: Ready to send messages"
+          echo ""
+          echo "📦 HOW TO ADD SECRETS TO GITHUB:"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "1. Go to: https://github.com/superadvisor007/telegramsoccer/settings/secrets/actions"
+          echo "2. Click 'New repository secret'"
+          echo "3. Add these secrets:"
+          echo "   • Name: API_FOOTBALL_KEY"
+          echo "     Value: <your api-football key>"
+          echo "   • Name: ISPORTS_API_KEY"
+          echo "     Value: <your isports key>"
+          echo "   • Name: TELEGRAM_BOT_TOKEN"
+          echo "     Value: 7971161852:AAFJAdHNAxYTHs2mi7Wj5sWuSA2tfA9WwcI"
+          echo ""
+          echo "✅ TOTAL COST: $0.00 FOREVER"
+          echo ""
+      
+      - name: Create API Keys Helper Script
+        run: |
+          cat > /tmp/api_keys_helper.py << 'SCRIPT'
+          #!/usr/bin/env python3
+          """Helper to test API keys once obtained."""
+          import os
+          import requests
+          
+          def test_api_football(key):
+              """Test API-Football key."""
+              url = "https://v3.football.api-sports.io/timezone"
+              headers = {"x-apisports-key": key}
+              try:
+                  response = requests.get(url, headers=headers, timeout=10)
+                  if response.status_code == 200:
+                      return True, "API-Football key valid!"
+                  else:
+                      return False, f"Status: {response.status_code}"
+              except Exception as e:
+                  return False, str(e)
+          
+          def test_isports(key):
+              """Test iSports API key."""
+              url = f"https://api.isportsapi.com/sport/football?api_key={key}"
+              try:
+                  response = requests.get(url, timeout=10)
+                  if response.status_code == 200:
+                      return True, "iSports API key valid!"
+                  else:
+                      return False, f"Status: {response.status_code}"
+              except Exception as e:
+                  return False, str(e)
+          
+          if __name__ == "__main__":
+              print("\n🔑 API Key Tester")
+              print("="*50)
+              
+              api_football = os.getenv("API_FOOTBALL_KEY", "")
+              isports = os.getenv("ISPORTS_API_KEY", "")
+              
+              if api_football:
+                  valid, msg = test_api_football(api_football)
+                  print(f"API-Football: {'✓' if valid else '✗'} {msg}")
+              else:
+                  print("API-Football: ⚠️  Key not set")
+              
+              if isports:
+                  valid, msg = test_isports(isports)
+                  print(f"iSports API: {'✓' if valid else '✗'} {msg}")
+              else:
+                  print("iSports API: ⚠️  Key not set")
+          SCRIPT
+          
+          echo "Script created at: /tmp/api_keys_helper.py"
+          echo "To test keys later: python /tmp/api_keys_helper.py"
+      
+      - name: Summary
+        run: |
+          echo ""
+          echo "🎯 NEXT ACTIONS REQUIRED:"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "1. ✅ Telegram Bot: Already configured (@Tonticketbot)"
+          echo "2. ⏳ API-Football: Sign up at api-football.com"
+          echo "3. ⏳ iSports API: Sign up at isportsapi.com"
+          echo "4. ⏳ Add keys to GitHub Secrets (see instructions above)"
+          echo "5. ⏳ Run daily pipeline workflow"
+          echo ""
+          echo "💰 Total Setup Time: ~10 minutes"
+          echo "💰 Total Cost: $0.00/month FOREVER"
+          echo ""
