@@ -1,0 +1,159 @@
+name: Daily 10K Training & Predictions
+
+on:
+  schedule:
+    # Run at 8:00 AM UTC daily
+    - cron: '0 8 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  train-and-predict:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy pandas scikit-learn requests python-dotenv matplotlib seaborn
+      
+      - name: Collect 10K+ historical data
+        run: |
+          python collect_massive_historical_data.py
+          echo "✅ Data collection complete"
+          ls -lh data/historical/
+      
+      - name: Train ML models on 10K+ matches
+        run: |
+          python train_knowledge_enhanced_ml.py
+          echo "✅ Training complete"
+          ls -lh models/knowledge_enhanced/
+      
+      - name: Run walk-forward backtest
+        run: |
+          python src/testing/walk_forward_backtest.py
+          echo "✅ Backtest complete"
+      
+      - name: Generate daily predictions
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python generate_enhanced_predictions.py
+          echo "✅ Predictions sent to Telegram"
+      
+      - name: Upload training artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: trained-models-${{ github.run_number }}
+          path: |
+            models/knowledge_enhanced/*.pkl
+            data/historical/massive_training_data.csv
+          retention-days: 7
+      
+      - name: Upload backtest results
+        uses: actions/upload-artifact@v4
+        with:
+          name: backtest-results-${{ github.run_number }}
+          path: |
+            data/backtests/*.json
+            data/stress_tests/*.txt
+            data/stress_tests/charts_*/*.png
+          retention-days: 30
+
+  weekly-stress-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    # Run only on Sundays
+    if: github.event.schedule == '0 8 * * 0' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy pandas scikit-learn requests python-dotenv matplotlib seaborn
+      
+      - name: Collect maximum historical data
+        run: |
+          python collect_massive_historical_data.py
+      
+      - name: Train models
+        run: |
+          python train_knowledge_enhanced_ml.py
+      
+      - name: Run comprehensive stress test
+        run: |
+          python src/testing/stress_test.py
+          echo "✅ Stress test complete"
+      
+      - name: Upload stress test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-stress-test-${{ github.run_number }}
+          path: |
+            data/stress_tests/stress_test_report_*.txt
+            data/stress_tests/charts_*/*.png
+          retention-days: 90
+
+  self-improvement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Run weekly on Mondays
+    if: github.event.schedule == '0 9 * * 1' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy pandas scikit-learn requests python-dotenv
+      
+      - name: Run weekly improvement cycle
+        env:
+          FOOTBALL_DATA_API_KEY: ${{ secrets.FOOTBALL_DATA_API_KEY }}
+        run: |
+          python -c "
+from src.learning.self_improvement import SelfImprovementSystem
+from datetime import datetime, timedelta
+
+system = SelfImprovementSystem()
+end_date = datetime.now().strftime('%Y-%m-%d')
+start_date = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
+
+results = system.weekly_improvement_cycle(start_date, end_date)
+print(f'✅ Improvement cycle complete: {results}')
+"
+      
+      - name: Upload improvement metrics
+        uses: actions/upload-artifact@v4
+        with:
+          name: improvement-metrics-${{ github.run_number }}
+          path: |
+            data/learning/*.json
+          retention-days: 90

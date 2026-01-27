@@ -87,8 +87,51 @@ class BettingEngine:
                         "confidence": pred.get("confidence_score", 0.5),
                         "key_factors": pred.get("key_factors", []),
                     })
+            
+            # Check Under 1.5 market
+            if "under_1_5_odds" in pred and "under_1_5_probability" in pred:
+                under_1_5_value = self._check_value(
+                    researched_prob=pred["under_1_5_probability"],
+                    odds=pred["under_1_5_odds"],
+                    min_prob=0.65,  # Slightly lower for Under markets
+                )
+                
+                if under_1_5_value["has_value"]:
+                    value_bets.append({
+                        "match_id": pred.get("match_id"),
+                        "match_info": f"{pred.get('home_team')} vs {pred.get('away_team')}",
+                        "market": "under_1_5",
+                        "odds": pred["under_1_5_odds"],
+                        "researched_probability": pred["under_1_5_probability"],
+                        "implied_probability": under_1_5_value["implied_probability"],
+                        "expected_value": under_1_5_value["expected_value"],
+                        "confidence": pred.get("confidence_score", 0.5),
+                        "key_factors": pred.get("key_factors", []),
+                    })
+            
+            # Check Halftime Over 0.5 market (experimental)
+            if "ht_over_0_5_odds" in pred and "ht_over_0_5_probability" in pred:
+                ht_value = self._check_value(
+                    researched_prob=pred["ht_over_0_5_probability"],
+                    odds=pred["ht_over_0_5_odds"],
+                    min_prob=0.70,  # Higher threshold for volatile market
+                )
+                
+                if ht_value["has_value"]:
+                    value_bets.append({
+                        "match_id": pred.get("match_id"),
+                        "match_info": f"{pred.get('home_team')} vs {pred.get('away_team')}",
+                        "market": "ht_over_0_5",
+                        "odds": pred["ht_over_0_5_odds"],
+                        "researched_probability": pred["ht_over_0_5_probability"],
+                        "implied_probability": ht_value["implied_probability"],
+                        "expected_value": ht_value["expected_value"],
+                        "confidence": pred.get("confidence_score", 0.5),
+                        "key_factors": pred.get("key_factors", []),
+                        "is_experimental": True,  # Mark as higher risk
+                    })
         
-        logger.info(f"Found {len(value_bets)} value betting opportunities")
+        logger.info(f"Found {len(value_bets)} value betting opportunities across all markets")
         return value_bets
     
     def build_accumulator(

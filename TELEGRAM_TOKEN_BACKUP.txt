@@ -1,0 +1,109 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                                                                            ║
+║   🔐 TELEGRAM BOT TOKEN - PERMANENT BACKUP                                ║
+║   Bot: tonticketbot | Never lose this information                        ║
+║                                                                            ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+BOT NAME: tonticketbot
+BOT USERNAME: @tonticketbot
+
+TELEGRAM BOT TOKEN:
+7971161852:AAFJAdHNAxYTHs2mi7Wj5sWuSA2tfA9WwcI
+
+TELEGRAM CHAT ID:
+-4792949084
+
+TELEGRAM API URL:
+https://api.telegram.org/bot7971161852:AAFJAdHNAxYTHs2mi7Wj5sWuSA2tfA9WwcI
+
+SEND MESSAGE ENDPOINT:
+https://api.telegram.org/bot7971161852:AAFJAdHNAxYTHs2mi7Wj5sWuSA2tfA9WwcI/sendMessage
+
+═══════════════════════════════════════════════════════════════════════════
+
+LOCATIONS WHERE TOKEN IS HARDCODED:
+
+1. /.env
+   - TELEGRAM_BOT_TOKEN=7971161852:AAFJAdHNAxYTHs2mi7Wj5sWuSA2tfA9WwcI
+   - TELEGRAM_CHAT_ID=-4792949084
+
+2. /config/telegram_config.py
+   - TELEGRAM_BOT_TOKEN (hardcoded constant)
+   - Helper functions: get_bot_token(), get_chat_id()
+
+3. /generate_enhanced_predictions.py
+   - TELEGRAM_BOT_TOKEN (hardcoded at top of file)
+   - send_to_telegram() function uses this token
+
+4. /run_professional_predictions.py
+   - Will be updated to use this token
+
+5. /TELEGRAM_TOKEN_BACKUP.txt
+   - This file (permanent backup)
+
+═══════════════════════════════════════════════════════════════════════════
+
+HOW TO USE:
+
+Python Example:
+```python
+import requests
+
+TELEGRAM_BOT_TOKEN = "7971161852:AAFJAdHNAxYTHs2mi7Wj5sWuSA2tfA9WwcI"
+TELEGRAM_CHAT_ID = "-4792949084"
+
+url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+payload = {
+    'chat_id': TELEGRAM_CHAT_ID,
+    'text': 'Hello from tonticketbot!',
+    'parse_mode': 'HTML'
+}
+
+response = requests.post(url, json=payload)
+print(response.json())
+```
+
+Curl Example:
+```bash
+curl -X POST "https://api.telegram.org/bot7971161852:AAFJAdHNAxYTHs2mi7Wj5sWuSA2tfA9WwcI/sendMessage" \
+  -H "Content-Type: application/json" \
+  -d '{"chat_id":"-4792949084","text":"Hello from tonticketbot!"}'
+```
+
+═══════════════════════════════════════════════════════════════════════════
+
+SECURITY NOTES:
+
+⚠️  This token grants full access to the tonticketbot Telegram bot
+⚠️  Keep this file secure and never commit to public repositories
+⚠️  If token is compromised, revoke it immediately via @BotFather
+⚠️  Regenerate token via @BotFather: /revoke then /newbot
+
+═══════════════════════════════════════════════════════════════════════════
+
+TROUBLESHOOTING:
+
+If Telegram API returns 401 Unauthorized:
+1. Verify token is correct (copy from this file)
+2. Check bot hasn't been deleted or revoked
+3. Regenerate token via @BotFather if needed
+
+If messages not received:
+1. Verify chat_id is correct: -4792949084
+2. Ensure bot is member of the chat/group
+3. Check bot has permission to send messages
+
+Test Token:
+curl -X POST "https://api.telegram.org/bot7971161852:AAFJAdHNAxYTHs2mi7Wj5sWuSA2tfA9WwcI/getMe"
+
+Expected Response:
+{"ok":true,"result":{"id":7971161852,"is_bot":true,"first_name":"tonticketbot",...}}
+
+═══════════════════════════════════════════════════════════════════════════
+
+Created: 2026-01-27 03:10 UTC
+System: telegramsoccer - Top 1% ML Betting System
+Purpose: Permanent backup of Telegram bot credentials
+
+═══════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,85 @@
+================================================================================
+🚀 KNOWLEDGE-ENHANCED ML TRAINING - TOP 1% SYSTEM
+================================================================================
+
+📊 Loading Training Data...
+  ✅ Loaded 6582 matches
+📚 Loading Knowledge Base...
+  ✅ Loaded 4 knowledge modules
+
+🤖 Training Ensemble ML Models on 6582 Matches...
+🔬 Engineering Advanced Features...
+  ✅ Created 9 new features
+
+  📊 Training OVER_1_5 model...
+    ✅ Accuracy: 0.716
+    ✅ ROC-AUC: 0.530
+    ✅ CV Score: 0.549 ± 0.013
+    📊 Top 3 Features:
+       predicted_away_goals: 0.186
+       home_elo: 0.111
+       elo_home_strength: 0.109
+
+  📊 Training OVER_2_5 model...
+    ✅ Accuracy: 0.532
+    ✅ ROC-AUC: 0.550
+    ✅ CV Score: 0.543 ± 0.015
+    📊 Top 3 Features:
+       predicted_away_goals: 0.182
+       elo_home_strength: 0.111
+       away_elo: 0.102
+
+  📊 Training BTTS model...
+    ✅ Accuracy: 0.535
+    ✅ ROC-AUC: 0.534
+    ✅ CV Score: 0.498 ± 0.005
+    📊 Top 3 Features:
+       predicted_away_goals: 0.177
+       elo_home_strength: 0.110
+       elo_away_strength: 0.100
+
+  📊 Training UNDER_1_5 model...
+    ✅ Accuracy: 0.719
+    ✅ ROC-AUC: 0.523
+    ✅ CV Score: 0.556 ± 0.021
+    📊 Top 3 Features:
+       predicted_away_goals: 0.184
+       elo_home_strength: 0.108
+       elo_away_strength: 0.104
+  ✅ Saved over_1_5 model
+  ✅ Saved over_2_5 model
+  ✅ Saved btts model
+  ✅ Saved under_1_5 model
+
+✅ All models saved to models/knowledge_enhanced/
+
+================================================================================
+📊 TRAINING RESULTS SUMMARY
+================================================================================
+
+OVER_1_5:
+  Accuracy: 71.6%
+  ROC-AUC: 0.530
+  CV Score: 0.549 ± 0.013
+
+OVER_2_5:
+  Accuracy: 53.2%
+  ROC-AUC: 0.550
+  CV Score: 0.543 ± 0.015
+
+BTTS:
+  Accuracy: 53.5%
+  ROC-AUC: 0.534
+  CV Score: 0.498 ± 0.005
+
+UNDER_1_5:
+  Accuracy: 71.9%
+  ROC-AUC: 0.523
+  CV Score: 0.556 ± 0.021
+
+================================================================================
+✅ KNOWLEDGE-ENHANCED ML SYSTEM READY
+🎯 Trained on 6582 matches × 17 features
+📚 Knowledge base: 4 expert modules
+🚀 Ready for top 1% predictions
+================================================================================
