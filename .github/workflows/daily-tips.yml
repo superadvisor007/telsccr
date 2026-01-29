@@ -27,6 +27,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
       
+      - name: Install Ollama (DeepSeek 7B - FREE LLM)
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          ollama serve &
+          sleep 5
+          ollama pull deepseek-llm:7b
+          echo "✅ DeepSeek 7B model ready"
+      
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -35,8 +43,10 @@ jobs:
       - name: Create .env file
         run: |
           echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" >> .env
-          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
-          echo "ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}" >> .env
+          echo "TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}" >> .env
+          echo "LLM_MODEL=deepseek-llm:7b" >> .env
+          echo "LLM_PROVIDER=ollama" >> .env
+          echo "OLLAMA_HOST=http://localhost:11434" >> .env
           echo "ODDS_API_KEY=${{ secrets.ODDS_API_KEY }}" >> .env
           echo "FOOTBALL_DATA_API_KEY=${{ secrets.FOOTBALL_DATA_API_KEY }}" >> .env
           echo "SPORTMONKS_API_KEY=${{ secrets.SPORTMONKS_API_KEY }}" >> .env

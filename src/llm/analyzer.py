@@ -1,23 +1,27 @@
-"""LLM-based match analysis using GPT-4 and Claude."""
+"""LLM-based match analysis using DeepSeek 7B (100% FREE via Ollama)."""
 import json
+import os
 from typing import Any, Dict, List, Optional
 
-from anthropic import Anthropic
 from loguru import logger
-from openai import OpenAI
 
-from src.core.config import settings
+from src.llm.deepseek_client import DeepSeekLLM, get_deepseek_llm
 
 
 class LLMAnalyzer:
-    """LLM-powered contextual match analysis."""
+    """LLM-powered contextual match analysis using DeepSeek 7B.
+    
+    DeepSeek 7B runs locally via Ollama - completely FREE!
+    No API keys needed, no external costs.
+    """
     
     def __init__(self):
-        self.openai_client = OpenAI(api_key=settings.llm.openai_api_key)
-        self.anthropic_client = Anthropic(api_key=settings.llm.anthropic_api_key)
-        self.model = settings.llm.model
-        self.temperature = settings.llm.temperature
-        self.max_tokens = settings.llm.max_tokens
+        # DeepSeek 7B - FREE local LLM via Ollama
+        model = os.environ.get("LLM_MODEL", "deepseek-llm:7b")
+        self.deepseek = get_deepseek_llm(model=model)
+        self.model = model
+        self.temperature = float(os.environ.get("LLM_TEMPERATURE", "0.3"))
+        self.max_tokens = int(os.environ.get("LLM_MAX_TOKENS", "2000"))
     
     def analyze_match(
         self,
@@ -29,7 +33,7 @@ class LLMAnalyzer:
         weather: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
-        Perform comprehensive LLM analysis of a match.
+        Perform comprehensive LLM analysis of a match using DeepSeek 7B.
         
         Returns:
             Dictionary with probabilities, reasoning, key factors, and confidence
@@ -39,16 +43,14 @@ class LLMAnalyzer:
         )
         
         try:
-            if "gpt" in self.model.lower():
-                response = self._analyze_with_openai(prompt)
-            else:
-                response = self._analyze_with_anthropic(prompt)
+            # Use DeepSeek 7B (FREE via Ollama)
+            response = self._analyze_with_deepseek(prompt)
             
-            logger.info(f"LLM analysis completed for {match_data['home_team']} vs {match_data['away_team']}")
+            logger.info(f"DeepSeek analysis completed for {match_data['home_team']} vs {match_data['away_team']}")
             return response
             
         except Exception as e:
-            logger.error(f"LLM analysis failed: {e}")
+            logger.error(f"DeepSeek analysis failed: {e}")
             # Return fallback analysis
             return self._fallback_analysis(features)
     
@@ -159,62 +161,50 @@ CRITICAL REQUIREMENTS:
         
         return prompt
     
-    def _analyze_with_openai(self, prompt: str) -> Dict[str, Any]:
-        """Analyze using OpenAI GPT-4."""
-        response = self.openai_client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are an expert soccer betting analyst. Return only valid JSON."
-                },
-                {"role": "user", "content": prompt}
-            ],
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
-            response_format={"type": "json_object"}
+    def _analyze_with_deepseek(self, prompt: str) -> Dict[str, Any]:
+        """Analyze using DeepSeek 7B (FREE via Ollama)."""
+        system_prompt = """You are DeepSeek, an expert soccer betting analyst specializing in low-odds accumulator strategies.
+Analyze matches conservatively - accuracy over confidence.
+Return ONLY valid JSON with no additional text."""
+
+        result = self.deepseek.generate(
+            prompt=prompt,
+            system_prompt=system_prompt,
+            json_mode=True
         )
         
-        content = response.choices[0].message.content
-        return json.loads(content)
-    
-    def _analyze_with_anthropic(self, prompt: str) -> Dict[str, Any]:
-        """Analyze using Anthropic Claude."""
-        response = self.anthropic_client.messages.create(
-            model="claude-3-sonnet-20240229",
-            max_tokens=self.max_tokens,
-            temperature=self.temperature,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
+        if "error" in result:
+            raise Exception(f"DeepSeek error: {result['error']}")
         
-        content = response.content[0].text
-        # Claude may wrap JSON in markdown, clean it
-        content = content.strip()
-        if content.startswith("```json"):
-            content = content[7:]
-        if content.startswith("```"):
-            content = content[3:]
-        if content.endswith("```"):
-            content = content[:-3]
-        
-        return json.loads(content.strip())
+        # Ensure required fields exist
+        return {
+            "over_1_5_probability": float(result.get("over_1_5_probability", 0.5)),
+            "btts_probability": float(result.get("btts_probability", 0.5)),
+            "confidence_score": float(result.get("confidence_score", 0.5)),
+            "key_factors": result.get("key_factors", ["DeepSeek analysis completed"]),
+            "reasoning": result.get("reasoning", "Analysis by DeepSeek 7B"),
+            "risks": result.get("risks", ["Standard market risks"]),
+            "recommendation": result.get("recommendation", "MONITOR"),
+            "model": self.model,
+            "provider": "deepseek-ollama",
+        }
     
     def _fallback_analysis(self, features: Dict) -> Dict[str, Any]:
-        """Provide fallback analysis if LLM fails."""
+        """Provide fallback analysis if DeepSeek fails."""
         return {
             "over_1_5_probability": features.get("over_1_5_baseline_prob", 0.5),
             "btts_probability": features.get("btts_baseline_prob", 0.5),
             "confidence_score": 0.3,  # Low confidence for fallback
             "key_factors": [
-                "LLM analysis unavailable - using statistical baseline",
+                "DeepSeek unavailable - using statistical baseline",
                 f"Feature-based Over 1.5 estimate: {features.get('over_1_5_baseline_prob', 0.5):.2%}",
                 f"Feature-based BTTS estimate: {features.get('btts_baseline_prob', 0.5):.2%}",
             ],
-            "reasoning": "Analysis based purely on statistical features without contextual reasoning.",
+            "reasoning": "Analysis based purely on statistical features without DeepSeek reasoning.",
             "risks": ["No LLM analysis available", "Limited contextual awareness"],
             "recommendation": "MONITOR",
+            "model": "fallback-statistical",
+            "provider": "fallback",
         }
     
     def batch_analyze(

@@ -3,6 +3,27 @@
 ## Project Mission
 **telegramsoccer** is a Telegram-based soccer betting assistant that combines LLM contextual analysis with statistical models to identify low-odds accumulator opportunities (target quote: ~1.40) in markets like **Over 1.5 Goals** and **Both Teams to Score (BTTS)**.
 
+## 🆕 LLM: DeepSeek 7B (100% FREE via Ollama)
+
+### Why DeepSeek?
+- **100% FREE**: Runs locally via Ollama, no API costs
+- **No External Services**: All compute paid by GitHub Codespaces/Actions
+- **Strong Reasoning**: DeepSeek 7B excels at analytical tasks
+- **Fast Inference**: Optimized for local hardware
+
+### LLM Configuration
+```
+Model: deepseek-llm:7b
+Fallback: deepseek-coder:7b  
+Provider: Ollama (local)
+Host: http://localhost:11434
+```
+
+### Setup DeepSeek
+```bash
+./setup_deepseek.sh  # Installs Ollama + DeepSeek 7B
+```
+
 ## 🚀 MAJOR UPDATE: 14K+ Match Training System (2026-01-27)
 
 ### Achieved Performance
@@ -69,7 +90,7 @@ Data Ingestion → Feature Engineering → LLM Analysis + ML Models → Betting 
 ### Key Components to Build
 1. **Data Pipeline** (`src/ingestion/`): API clients for weather, team stats, odds, injuries
 2. **Feature Engineering** (`src/features/`): xG, form indices, H2H trends, sentiment scores
-3. **LLM Layer** (`src/llm/`): Prompt templates for GPT-4/Claude to assess match context
+3. **LLM Layer** (`src/llm/`): DeepSeek 7B prompts for match context analysis (100% FREE via Ollama)
 4. **Statistical Models** (`src/models/`): XGBoost/logistic regression for probability estimation
 5. **Betting Engine** (`src/betting/`): Accumulator builder, bankroll management, value detection
 6. **Telegram Bot** (`src/bot/`): User interface for daily tips and bet tracking
@@ -106,7 +127,7 @@ When analyzing matches, the LLM must consider:
 - **Language**: Python 3.11+ (data science libraries, LLM integrations)
 - **Data**: `pandas`, `SQLAlchemy`, Airflow/Prefect for orchestration
 - **ML**: `scikit-learn`, `xgboost`, `sports-betting` package
-- **LLM**: OpenAI API (GPT-4), Anthropic (Claude), or Hugging Face (Llama-3)
+- **LLM**: DeepSeek 7B via Ollama (100% FREE, local inference)
 - **Bot**: `python-telegram-bot` library
 - **Automation**: GitHub Actions for daily tip generation
 

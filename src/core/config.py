@@ -1,7 +1,7 @@
 """Configuration management for TelegramSoccer."""
 import os
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import yaml
 from pydantic import Field
@@ -35,16 +35,22 @@ class BettingConfig(BaseSettings):
 
 
 class LLMConfig(BaseSettings):
-    """LLM configuration."""
+    """LLM configuration - DeepSeek 7B via Ollama (100% FREE)."""
     
-    model: str = Field(default="gpt-4-turbo-preview", env="LLM_MODEL")
-    fallback_model: str = "claude-3-sonnet-20240229"
-    temperature: float = Field(default=0.2, env="LLM_TEMPERATURE")
+    # DeepSeek 7B - runs locally via Ollama, no API costs!
+    model: str = Field(default="deepseek-llm:7b", env="LLM_MODEL")
+    fallback_model: str = "deepseek-coder:7b"
+    provider: str = Field(default="ollama", env="LLM_PROVIDER")
+    temperature: float = Field(default=0.3, env="LLM_TEMPERATURE")
     max_tokens: int = Field(default=2000, env="LLM_MAX_TOKENS")
-    timeout: int = 30
+    timeout: int = 120
     
-    openai_api_key: str = Field(..., env="OPENAI_API_KEY")
-    anthropic_api_key: str = Field(..., env="ANTHROPIC_API_KEY")
+    # Ollama settings (local inference - FREE!)
+    ollama_host: str = Field(default="http://localhost:11434", env="OLLAMA_HOST")
+    
+    # Legacy API keys - optional, not needed for DeepSeek/Ollama
+    openai_api_key: Optional[str] = Field(default=None, env="OPENAI_API_KEY")
+    anthropic_api_key: Optional[str] = Field(default=None, env="ANTHROPIC_API_KEY")
     
     class Config:
         env_file = ".env"

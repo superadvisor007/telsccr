@@ -1,6 +1,6 @@
-"""Telegram bot interface for daily tips."""
+"""Telegram bot interface for daily tips with professional ticket formatting."""
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from loguru import logger
 from telegram import Update
@@ -12,54 +12,122 @@ from telegram.ext import (
     filters,
 )
 
-from src.core.config import settings
+from src.bot.ticket_generator import (
+    TicketGenerator,
+    MultiBetTicket,
+    DailyTicketService,
+    BetLeg,
+    MarketType,
+)
 
 
 class TelegramBot:
-    """Telegram bot for delivering betting tips."""
+    """Telegram bot for delivering betting tips with professional ticket format."""
     
-    def __init__(self):
-        self.token = settings.telegram.bot_token
-        self.admin_ids = settings.telegram.admin_ids
+    def __init__(self, token: str = None, admin_ids: List[int] = None):
+        import os
+        self.token = token or os.environ.get("TELEGRAM_BOT_TOKEN", "")
+        self.admin_ids = admin_ids or []
         self.application = None
+        
+        # Ticket generator with DeepSeek LLM integration
+        self.ticket_generator = TicketGenerator()
+        self.ticket_service = DailyTicketService()
+        self.current_ticket: Optional[MultiBetTicket] = None
     
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /start command."""
         welcome_message = """
 🎯 *Welcome to TelegramSoccer Bot!*
 
-I provide daily low-odds accumulator tips for soccer betting, focusing on:
-• Over 1.5 Goals
-• Both Teams to Score (BTTS)
+I provide daily low-odds accumulator tips for soccer betting, featuring:
+• Professional multi-bet tickets 🎫
+• DeepSeek AI analysis 🤖
 • Target quote: ~1.40
 
 *Commands:*
 /start - Show this message
-/today - Get today's tips
+/today - Get today's multi-bet ticket
+/ticket - View current ticket
+/results - Check ticket results (✓/X)
 /stats - View betting statistics
-/bankroll - Check current bankroll
 /help - Get help
 
-Powered by AI analysis (LLM + Statistical Models)
+🤖 Powered by DeepSeek 7B (100% FREE)
 ⚠️ Bet responsibly. Gambling involves risk.
         """
         await update.message.reply_text(welcome_message, parse_mode="Markdown")
         logger.info(f"User {update.effective_user.id} started bot")
     
     async def today_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-        """Handle /today command - show today's tips."""
-        # This will be populated by the pipeline
-        tips = context.bot_data.get("today_tips", [])
+        """Handle /today command - show today's multi-bet ticket."""
+        # Get predictions from bot data
+        predictions = context.bot_data.get("today_predictions", [])
         
-        if not tips:
+        if not predictions:
             await update.message.reply_text(
-                "📭 No tips available for today yet. Check back after 9:00 AM UTC!"
+                "📭 No predictions available for today yet.\n"
+                "Check back after 9:00 AM UTC!"
             )
             return
         
-        message = self._format_tips_message(tips)
-        await update.message.reply_text(message, parse_mode="Markdown")
-        logger.info(f"User {update.effective_user.id} requested today's tips")
+        # Generate professional ticket
+        self.current_ticket = self.ticket_service.generate_daily_ticket(
+            predictions=predictions,
+            target_odds=1.40,
+            max_legs=4,
+            min_confidence=0.65,
+        )
+        
+        # Store in bot data
+        context.bot_data["current_ticket"] = self.current_ticket
+        
+        # Send formatted ticket
+        ticket_message = self.ticket_generator.format_ticket(
+            self.current_ticket,
+            show_results=False,
+            show_confidence=True,
+        )
+        
+        await update.message.reply_text(ticket_message, parse_mode="MarkdownV2")
+        logger.info(f"Ticket sent to user {update.effective_user.id}")
+    
+    async def ticket_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /ticket command - show current ticket."""
+        ticket = context.bot_data.get("current_ticket", self.current_ticket)
+        
+        if not ticket:
+            await update.message.reply_text(
+                "🎫 No active ticket.\nUse /today to generate today's tips!"
+            )
+            return
+        
+        ticket_message = self.ticket_generator.format_ticket(ticket, show_results=False)
+        await update.message.reply_text(ticket_message, parse_mode="MarkdownV2")
+    
+    async def results_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /results command - show ticket with results."""
+        ticket = context.bot_data.get("current_ticket", self.current_ticket)
+        results = context.bot_data.get("match_results", [])
+        
+        if not ticket:
+            await update.message.reply_text(
+                "🎫 No active ticket to check.\nUse /today first!"
+            )
+            return
+        
+        if results:
+            # Update ticket with results
+            ticket = self.ticket_generator.update_results(ticket, results)
+            context.bot_data["current_ticket"] = ticket
+        
+        ticket_message = self.ticket_generator.format_ticket(
+            ticket,
+            show_results=True,
+            show_scores=True,
+        )
+        await update.message.reply_text(ticket_message, parse_mode="MarkdownV2")
+        logger.info(f"Results sent to user {update.effective_user.id}")
     
     async def stats_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Handle /stats command."""
@@ -195,12 +263,14 @@ An AI-powered betting assistant that analyzes soccer matches and provides daily 
         # Add handlers
         self.application.add_handler(CommandHandler("start", self.start_command))
         self.application.add_handler(CommandHandler("today", self.today_command))
+        self.application.add_handler(CommandHandler("ticket", self.ticket_command))
+        self.application.add_handler(CommandHandler("results", self.results_command))
         self.application.add_handler(CommandHandler("stats", self.stats_command))
         self.application.add_handler(CommandHandler("bankroll", self.bankroll_command))
         self.application.add_handler(CommandHandler("help", self.help_command))
         
         # Run bot
-        logger.info("Telegram bot started")
+        logger.info("Telegram bot started with DeepSeek AI integration")
         self.application.run_polling(allowed_updates=Update.ALL_TYPES)
     
     async def update_bot_data(self, tips: List[Dict], stats: Dict) -> None:

@@ -39,11 +39,14 @@ leagues:
     - "Ligue 1"
 
 llm:
-  model: "gpt-4-turbo-preview"
-  fallback_model: "claude-3-sonnet-20240229"
-  temperature: 0.2
+  # DeepSeek 7B - 100% FREE via Ollama (local inference)
+  model: "deepseek-llm:7b"
+  fallback_model: "deepseek-coder:7b"
+  provider: "ollama"  # Local inference, no API costs!
+  temperature: 0.3
   max_tokens: 2000
-  timeout: 30
+  timeout: 120
+  ollama_host: "http://localhost:11434"
 
 data_sources:
   odds:
