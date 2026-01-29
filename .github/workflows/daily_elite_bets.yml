@@ -38,15 +38,22 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           cd ${{ github.workspace }}
+          # Use advanced ML models for predictions
           python -c "
           import sys
+          import os
           sys.path.insert(0, 'src')
           
-          # Use V2 with Dixon-Coles model
-          from pipeline.elite_value_bets_v2 import EliteValueBetsV2
-          
-          engine = EliteValueBetsV2()
-          value_bets = engine.run()
+          # Check if elite_value_bets_v2 exists, else use standard prediction
+          try:
+              from pipeline.elite_value_bets_v2 import EliteValueBetsV2
+              engine = EliteValueBetsV2()
+              value_bets = engine.run()
+          except ImportError:
+              print('⚠️  EliteValueBetsV2 not found, using standard prediction pipeline')
+              from models.prediction_model import PredictionModel
+              model = PredictionModel()
+              value_bets = model.predict_today()
           
           if value_bets:
               print(f'✅ Generated {len(value_bets)} elite value bets!')

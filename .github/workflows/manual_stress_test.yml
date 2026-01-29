@@ -43,7 +43,14 @@ jobs:
       
       - name: Train models
         run: |
-          python train_knowledge_enhanced_ml.py
+          # Use advanced ML trainer if available, else fallback
+          if [ -f train_advanced_ml_v2.py ]; then
+            echo "🚀 Using Advanced ML V2 trainer"
+            python train_advanced_ml_v2.py
+          else
+            echo "⚙️  Using standard knowledge-enhanced trainer"
+            python train_knowledge_enhanced_ml.py
+          fi
       
       - name: Run customized stress test
         run: |
