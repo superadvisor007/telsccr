@@ -18,10 +18,10 @@ jobs:
     
     steps:
       - name: 🎯 Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: 🐍 Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
@@ -78,6 +78,10 @@ jobs:
           echo "🔄 Retraining models to improve toward €20k/month vision..."
           
           # Collect latest data
+          python collect_massive_historical_data.py
+          
+          # Retrain with advanced ML system
+          python train_advanced_ml_v2.py
           python collect_massive_historical_data.py
           
           # Train with improved parameters

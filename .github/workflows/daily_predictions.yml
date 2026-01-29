@@ -38,7 +38,7 @@ jobs:
       - name: 🔄 Check for trained models
         id: check_models
         run: |
-          if [ -d "models/trained" ] && [ -f "models/trained/over_1_5_model.joblib" ]; then
+          if [ -d "models/knowledge_enhanced" ] && [ -f "models/knowledge_enhanced/over_1_5_model.pkl" ]; then
             echo "models_exist=true" >> $GITHUB_OUTPUT
           else
             echo "models_exist=false" >> $GITHUB_OUTPUT
@@ -48,7 +48,7 @@ jobs:
         if: steps.check_models.outputs.models_exist == 'false'
         run: |
           echo "🔧 No trained models found - training now..."
-          python train_professional_models.py
+          python train_knowledge_enhanced_ml.py
       
       - name: 🔍 Fetch today's matches
         run: |
